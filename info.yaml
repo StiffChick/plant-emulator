@@ -45,3 +45,5 @@ pinout:
   uio[5]: ""
   uio[6]: "TICK (salida)"
   uio[7]: "X_ESCALON (salida)"
+# Do not change!
+yaml_version: 6
