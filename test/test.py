@@ -1,40 +1,53 @@
-# SPDX-FileCopyrightText: © 2024 Tiny Tapeout
 # SPDX-License-Identifier: Apache-2.0
-
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles
 
 
-@cocotb.test()
-async def test_project(dut):
-    dut._log.info("Start")
-
-    # Set the clock period to 10 us (100 KHz)
-    clock = Clock(dut.clk, 10, unit="us")
-    cocotb.start_soon(clock.start())
-
-    # Reset
-    dut._log.info("Reset")
+async def reset(dut):
     dut.ena.value = 1
     dut.ui_in.value = 0
     dut.uio_in.value = 0
     dut.rst_n.value = 0
-    await ClockCycles(dut.clk, 10)
+    await ClockCycles(dut.clk, 5)
     dut.rst_n.value = 1
+    await ClockCycles(dut.clk, 2)
 
-    dut._log.info("Test project behavior")
 
-    # Set the input values you want to test
-    dut.ui_in.value = 20
-    dut.uio_in.value = 30
+@cocotb.test()
+async def test_primer_orden(dut):
+    clock = Clock(dut.clk, 10, unit="us")
+    cocotb.start_soon(clock.start())
+    await reset(dut)
 
-    # Wait for one clock cycle to see the output values
-    await ClockCycles(dut.clk, 1)
+    # Modo manual, muestreo en cada ciclo (p=0), amplitud maxima (x=255), k=1
+    dut.ui_in.value = (0 << 4) | (1 << 3) | 0
+    dut.uio_in.value = 0b111
+    await ClockCycles(dut.clk, 40)
+    assert int(dut.uo_out.value) == 255, f"k=1 debe llegar a 255, dio {int(dut.uo_out.value)}"
 
-    # The following assersion is just an example of how to check the output values.
-    # Change it to match the actual expected output of your module:
-    assert dut.uo_out.value == 50
+    # Bajar el escalon: debe regresar a 0
+    dut.uio_in.value = 0b011
+    await ClockCycles(dut.clk, 40)
+    assert int(dut.uo_out.value) == 0, f"debe regresar a 0, dio {int(dut.uo_out.value)}"
 
-    # Keep testing the module by changing the input values, waiting for
-    # one or more clock cycles, and asserting the expected output values.
+
+@cocotb.test()
+async def test_tau_mayor_es_mas_lento(dut):
+    clock = Clock(dut.clk, 10, unit="us")
+    cocotb.start_soon(clock.start())
+    await reset(dut)
+
+    # k_sel=7 -> k=8: tras 20 muestras debe ir muy abajo de 255
+    dut.ui_in.value = (0 << 4) | (1 << 3) | 7
+    dut.uio_in.value = 0b111
+    await ClockCycles(dut.clk, 20)
+    lento = int(dut.uo_out.value)
+    assert 0 < lento < 60, f"con k=8 se esperaba un valor bajo, dio {lento}"
+
+    anterior = lento
+    for _ in range(5):
+        await ClockCycles(dut.clk, 50)
+        actual = int(dut.uo_out.value)
+        assert actual >= anterior
+        anterior = actual
