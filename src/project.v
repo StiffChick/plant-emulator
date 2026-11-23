@@ -52,7 +52,7 @@ module tt_um_plant_emulator (
     wire       step_hi = manual ? uio_in[2] : auto_hi;
     wire [7:0] x       = step_hi ? amp : 8'd0;
 
-    // ---- Planta de primer orden (punto fijo, 8 bits fraccionarios) ----
+    // --- Planta de primer orden (punto fijo, 8 bits fraccionarios) ---
     wire [3:0] k = {1'b0, k_sel} + 4'd1;       // 1..8
     reg  [15:0] acc;
 
