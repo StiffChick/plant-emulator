@@ -1,20 +1,26 @@
-<!---
+## Como funciona
 
-This file is used to generate your project datasheet. Please fill in the information below and delete any unused
-sections.
+Emulador digital de una **planta de primer orden** (el equivalente de un RC pasivo),
+hecho en silicio. En cada muestra calcula:
 
-You can also include images in this folder and reference them in the markdown. Each image must be less than
-512 kb in size, and the combined size of all images must be less than 1 MB.
--->
+    y[n+1] = y[n] + (x[n] - y[n]) / 2^k        con k = 1..8
 
-## How it works
+que corresponde a H(z) = a / (z - (1 - a)), con a = 2^-k, y a una constante de tiempo
+tau = -Ts / ln(1 - 2^-k), aproximadamente 2^k muestras. Solo usa sumas y desplazamientos.
 
-Explain how your project works
+El chip genera su propio **escalon** (0 -> amplitud -> 0, cambia cada 4096 muestras), asi que
+no necesita generador de funciones. La respuesta sale en 8 bits por `uo_out`.
 
-## How to test
+## Como probarlo
 
-Explain how to use your project
+1. Pon `clk` (por ejemplo 1 MHz) y haz reset.
+2. `ui[2:0]` = K (tau = 2^(K+1) muestras). `ui[7:4]` = P: se muestrea cada 2^P ciclos de clk.
+   Ejemplo: clk = 1 MHz y P = 8 -> Ts = 256 us.
+3. `uio[1:0]` elige la amplitud del escalon: 63, 127, 191 o 255.
+4. Modo manual: `ui[3] = 1` y `uio[2]` es el nivel del escalon.
+5. Observa `uo_out[7:0]` con un DAC R-2R y un osciloscopio, o capturalo con la tarjeta de TT.
+   `uio[7]` (escalon) y `uio[6]` (tick) sirven para sincronizar el osciloscopio.
 
-## External hardware
+## Hardware externo
 
-List external hardware used in your project (e.g. PMOD, LED display, etc), if any
+Opcional: DAC R-2R de 8 bits en `uo_out` y osciloscopio.
